@@ -15,8 +15,13 @@ import {
   Calendar,
   Layers,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Info,
   SlidersHorizontal,
+  ArrowRight,
+  X,
 } from "lucide-react";
 import {
   JavtifulVideoItem,
@@ -76,14 +81,54 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
   // Actresses State
   const [actresses, setActresses] = useState<JavtifulActressItem[]>([]);
   const [actressesLoading, setActressesLoading] = useState<boolean>(false);
+  const [actressesPage, setActressesPage] = useState<number>(1);
+  const [actressesPagination, setActressesPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextPage?: number;
+    prevPage?: number;
+  } | null>(null);
   const [selectedActress, setSelectedActress] = useState<string | null>(null);
+  const [selectedActressName, setSelectedActressName] = useState<string | null>(null);
   const [actressVideos, setActressVideos] = useState<JavtifulVideoItem[]>([]);
+  const [actressVideosPage, setActressVideosPage] = useState<number>(1);
+  const [actressVideosLoading, setActressVideosLoading] = useState<boolean>(false);
+  const [actressVideosPagination, setActressVideosPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextPage?: number;
+    prevPage?: number;
+  } | null>(null);
 
   // Studios State
   const [studios, setStudios] = useState<JavtifulStudioItem[]>([]);
   const [studiosLoading, setStudiosLoading] = useState<boolean>(false);
+  const [studiosPage, setStudiosPage] = useState<number>(1);
+  const [studiosPagination, setStudiosPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextPage?: number;
+    prevPage?: number;
+  } | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<string | null>(null);
+  const [selectedStudioName, setSelectedStudioName] = useState<string | null>(null);
   const [studioVideos, setStudioVideos] = useState<JavtifulVideoItem[]>([]);
+  const [studioVideosPage, setStudioVideosPage] = useState<number>(1);
+  const [studioVideosLoading, setStudioVideosLoading] = useState<boolean>(false);
+  const [studioVideosPagination, setStudioVideosPagination] = useState<{
+    currentPage: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+    nextPage?: number;
+    prevPage?: number;
+  } | null>(null);
 
   // Test Suite State
 
@@ -161,13 +206,24 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
     }
   };
 
-  const loadActresses = async () => {
-    if (actresses.length > 0) return;
+  const loadActresses = async (page = 1, force = false) => {
+    if (!force && actresses.length > 0 && actressesPage === page) return;
     setActressesLoading(true);
     try {
-      const res = await fetch("/api/scrapers/javtiful/actresses");
+      const res = await fetch(`/api/scrapers/javtiful/actresses?page=${page}`);
       const data = await res.json();
       setActresses(data.actresses || []);
+      setActressesPage(page);
+      if (data.pagination) {
+        setActressesPagination(data.pagination);
+      } else {
+        setActressesPagination({
+          currentPage: page,
+          totalPages: data.totalPages || 316,
+          hasNext: true,
+          hasPrev: page > 1,
+        });
+      }
     } catch (err) {
       console.error("Failed to load actresses:", err);
     } finally {
@@ -175,13 +231,24 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
     }
   };
 
-  const loadStudios = async () => {
-    if (studios.length > 0) return;
+  const loadStudios = async (page = 1, force = false) => {
+    if (!force && studios.length > 0 && studiosPage === page) return;
     setStudiosLoading(true);
     try {
-      const res = await fetch("/api/scrapers/javtiful/studios");
+      const res = await fetch(`/api/scrapers/javtiful/studios?page=${page}`);
       const data = await res.json();
       setStudios(data.studios || []);
+      setStudiosPage(page);
+      if (data.pagination) {
+        setStudiosPagination(data.pagination);
+      } else {
+        setStudiosPagination({
+          currentPage: page,
+          totalPages: data.totalPages || 1,
+          hasNext: true,
+          hasPrev: page > 1,
+        });
+      }
     } catch (err) {
       console.error("Failed to load studios:", err);
     } finally {
@@ -189,25 +256,59 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
     }
   };
 
-  const viewActressVideos = async (slug: string) => {
+  const viewActressVideos = async (slug: string, name?: string, page = 1) => {
     setSelectedActress(slug);
+    if (name) setSelectedActressName(name);
+    setActressVideosPage(page);
+    setActressVideosLoading(true);
     try {
-      const res = await fetch(`/api/scrapers/javtiful/actress-videos?slug=${encodeURIComponent(slug)}`);
+      const res = await fetch(
+        `/api/scrapers/javtiful/actress-videos?slug=${encodeURIComponent(slug)}&page=${page}`
+      );
       const data = await res.json();
       setActressVideos(data.items || []);
+      if (data.pagination) {
+        setActressVideosPagination(data.pagination);
+      } else {
+        setActressVideosPagination({
+          currentPage: page,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: page > 1,
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch actress videos:", err);
+    } finally {
+      setActressVideosLoading(false);
     }
   };
 
-  const viewStudioVideos = async (slug: string) => {
+  const viewStudioVideos = async (slug: string, name?: string, page = 1) => {
     setSelectedStudio(slug);
+    if (name) setSelectedStudioName(name);
+    setStudioVideosPage(page);
+    setStudioVideosLoading(true);
     try {
-      const res = await fetch(`/api/scrapers/javtiful/studio-videos?slug=${encodeURIComponent(slug)}`);
+      const res = await fetch(
+        `/api/scrapers/javtiful/studio-videos?slug=${encodeURIComponent(slug)}&page=${page}`
+      );
       const data = await res.json();
       setStudioVideos(data.items || []);
+      if (data.pagination) {
+        setStudioVideosPagination(data.pagination);
+      } else {
+        setStudioVideosPagination({
+          currentPage: page,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: page > 1,
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch studio videos:", err);
+    } finally {
+      setStudioVideosLoading(false);
     }
   };
 
@@ -443,73 +544,57 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Top Banner */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              STEP 7
-            </span>
-            <h1 className="text-lg font-semibold text-neutral-900">Bulk Scraper & Transactional Commit Pipeline</h1>
-          </div>
-          <p className="text-xs text-neutral-500">
-            Universal scraper pipeline supporting any Javtiful page (catalog, actress, channel, or search) with in-memory tree batching and strictly <strong>1 atomic GitHub commit</strong> per bulk operation (Stop Rule).
-          </p>
-        </div>
-
-
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="border-b border-neutral-200 flex items-center gap-2 overflow-x-auto text-xs font-medium pb-px">
+      {/* Selector Buttons */}
+      <div className="flex items-center gap-2 flex-wrap">
         <button
+          id="btn-tab-bulk"
           onClick={() => setActiveTab("bulk")}
-          className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
             activeTab === "bulk"
-              ? "border-neutral-900 text-neutral-900 font-semibold"
-              : "border-transparent text-neutral-500 hover:text-neutral-800"
+              ? "bg-neutral-900 text-white shadow-xs"
+              : "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50"
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
-          <span>Bulk Scraper (URL Pipeline)</span>
-          <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-            Step 7
-          </span>
+          <span>Bulk Scraper</span>
         </button>
 
         <button
+          id="btn-tab-catalog"
           onClick={() => setActiveTab("catalog")}
-          className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
             activeTab === "catalog"
-              ? "border-neutral-900 text-neutral-900 font-semibold"
-              : "border-transparent text-neutral-500 hover:text-neutral-800"
+              ? "bg-neutral-900 text-white shadow-xs"
+              : "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50"
           }`}
         >
           <Globe className="w-3.5 h-3.5" />
-          <span>Catalog (javtiful.com/main)</span>
+          <span>Catalog</span>
         </button>
 
         <button
+          id="btn-tab-search"
           onClick={() => setActiveTab("search")}
-          className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
             activeTab === "search"
-              ? "border-neutral-900 text-neutral-900 font-semibold"
-              : "border-transparent text-neutral-500 hover:text-neutral-800"
+              ? "bg-neutral-900 text-white shadow-xs"
+              : "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50"
           }`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span>Search (Code / Keyword)</span>
+          <span>Search</span>
         </button>
 
         <button
+          id="btn-tab-actresses"
           onClick={() => {
             setActiveTab("actresses");
             loadActresses();
           }}
-          className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
             activeTab === "actresses"
-              ? "border-neutral-900 text-neutral-900 font-semibold"
-              : "border-transparent text-neutral-500 hover:text-neutral-800"
+              ? "bg-neutral-900 text-white shadow-xs"
+              : "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50"
           }`}
         >
           <User className="w-3.5 h-3.5" />
@@ -517,21 +602,20 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
         </button>
 
         <button
+          id="btn-tab-studios"
           onClick={() => {
             setActiveTab("studios");
             loadStudios();
           }}
-          className={`px-3 py-2 border-b-2 transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+          className={`px-3.5 py-2 rounded-lg text-xs font-medium transition-all flex items-center gap-2 ${
             activeTab === "studios"
-              ? "border-neutral-900 text-neutral-900 font-semibold"
-              : "border-transparent text-neutral-500 hover:text-neutral-800"
+              ? "bg-neutral-900 text-white shadow-xs"
+              : "bg-white text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50"
           }`}
         >
           <Building className="w-3.5 h-3.5" />
           <span>Studios Directory</span>
         </button>
-
-
       </div>
 
       {registerSuccess && (
@@ -554,53 +638,6 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
         <div className="space-y-6">
           {/* Universal URL Scraper Form */}
           <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-neutral-900 flex items-center gap-2">
-                  <span>Universal URL Scraper & Transactional Pipeline</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
-                    Atomic Git Batch Commit
-                  </span>
-                </h3>
-                <p className="text-xs text-neutral-500 mt-0.5">
-                  Accepts any page URL (catalog, actress, channel, or search), detects all posts, extracts metadata, checks global deduplication, and commits changes in <strong>1 single atomic transaction</strong>.
-                </p>
-              </div>
-            </div>
-
-            {/* Presets */}
-            <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="text-neutral-500 text-[11px] font-medium">Quick Presets:</span>
-              <button
-                type="button"
-                onClick={() => setBulkUrl("https://javtiful.com/main")}
-                className="px-2.5 py-1 rounded bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-mono text-[11px] transition-colors border border-neutral-200"
-              >
-                /main (Catalog)
-              </button>
-              <button
-                type="button"
-                onClick={() => setBulkUrl("https://javtiful.com/actress/hatano-yui")}
-                className="px-2.5 py-1 rounded bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-mono text-[11px] transition-colors border border-neutral-200"
-              >
-                /actress/hatano-yui
-              </button>
-              <button
-                type="button"
-                onClick={() => setBulkUrl("https://javtiful.com/channel/s1")}
-                className="px-2.5 py-1 rounded bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-mono text-[11px] transition-colors border border-neutral-200"
-              >
-                /channel/s1
-              </button>
-              <button
-                type="button"
-                onClick={() => setBulkUrl("https://javtiful.com/search?q=STARS")}
-                className="px-2.5 py-1 rounded bg-neutral-100 text-neutral-700 hover:bg-neutral-200 font-mono text-[11px] transition-colors border border-neutral-200"
-              >
-                /search?q=STARS
-              </button>
-            </div>
-
             <form onSubmit={handleBulkScrapeUrl} className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="relative flex-1">
@@ -1300,43 +1337,106 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
       {/* TAB 3: ACTRESSES */}
       {activeTab === "actresses" && (
         <div className="space-y-4">
-          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
-                Javtiful Actresses Directory (/actresses)
-              </h3>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Lists top featured actresses and models with video catalog links.
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
+                  Javtiful Actresses Directory (/actresses)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
+                  Page {actressesPage} {actressesPagination ? `of ${actressesPagination.totalPages}` : ""}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>Browse actresses directory from source:</span>
+                <a
+                  href={actressesPage > 1 ? `https://javtiful.com/actresses?page=${actressesPage}` : `https://javtiful.com/actresses`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-[11px] text-neutral-700 hover:text-neutral-900 underline inline-flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200"
+                >
+                  <span>javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               </p>
             </div>
-            <button
-              onClick={() => {
-                setActresses([]);
-                loadActresses();
-              }}
-              disabled={actressesLoading}
-              className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs flex items-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${actressesLoading ? "animate-spin" : ""}`} />
-              <span>Reload</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-reload-actresses"
+                onClick={() => loadActresses(actressesPage, true)}
+                disabled={actressesLoading}
+                className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${actressesLoading ? "animate-spin" : ""}`} />
+                <span>Reload Page</span>
+              </button>
+            </div>
           </div>
 
+          {/* Top Pagination Control */}
+          {actressesPagination && (
+            <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-xs">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-neutral-500">
+                  Showing actresses on <strong className="text-neutral-900">Page {actressesPage}</strong> of <strong className="text-neutral-900">{actressesPagination.totalPages}</strong>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => loadActresses(1, true)}
+                    disabled={actressesPage <= 1 || actressesLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="First Page"
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => loadActresses(actressesPage - 1, true)}
+                    disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+                  <span className="px-2 py-1 text-xs font-semibold bg-neutral-900 text-white rounded-lg min-w-[32px] text-center">
+                    {actressesPage}
+                  </span>
+                  <button
+                    onClick={() => loadActresses(actressesPage + 1, true)}
+                    disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => loadActresses(actressesPagination.totalPages, true)}
+                    disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="Last Page"
+                  >
+                    <ChevronsRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {actressesLoading ? (
-            <div className="py-12 text-center text-xs text-neutral-500">
-              Loading actresses from https://javtiful.com/actresses...
+            <div className="py-16 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-3">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-neutral-400" />
+              <div>Fetching actresses from https://javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}...</div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {actresses.map((a) => (
                 <div
                   key={a.slug}
-                  onClick={() => viewActressVideos(a.slug)}
-                  className={`bg-white border rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 transition-all flex flex-col items-center text-center space-y-2 ${
-                    selectedActress === a.slug ? "border-neutral-900 ring-2 ring-neutral-900/10" : "border-neutral-200"
+                  onClick={() => viewActressVideos(a.slug, a.name, 1)}
+                  className={`bg-white border rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 hover:shadow-sm transition-all flex flex-col items-center text-center space-y-2 group ${
+                    selectedActress === a.slug ? "border-neutral-900 ring-2 ring-neutral-900/10 bg-neutral-50/50" : "border-neutral-200"
                   }`}
                 >
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-neutral-100 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-neutral-100 flex items-center justify-center border border-neutral-200 group-hover:scale-105 transition-transform">
                     {a.thumbnail ? (
                       <img
                         src={a.thumbnail}
@@ -1348,34 +1448,319 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                       <User className="w-8 h-8 text-neutral-400" />
                     )}
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold text-neutral-900 line-clamp-1">{a.name}</div>
-                    {a.videoCount !== undefined && (
-                      <div className="text-[11px] text-neutral-400">{a.videoCount} videos</div>
+                  <div className="w-full">
+                    <div className="text-xs font-semibold text-neutral-900 line-clamp-1 group-hover:text-neutral-950">{a.name}</div>
+                    {a.videoCount !== undefined ? (
+                      <div className="text-[11px] text-neutral-500 mt-0.5">{a.videoCount} videos</div>
+                    ) : (
+                      <div className="text-[11px] text-neutral-400 mt-0.5 font-mono truncate">{a.slug}</div>
                     )}
+                  </div>
+                  <div className="text-[10px] text-neutral-400 group-hover:text-neutral-700 font-medium flex items-center gap-0.5 pt-1">
+                    <span>View videos</span>
+                    <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {selectedActress && actressVideos.length > 0 && (
-            <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold text-neutral-900">
-                  Videos for actress: <span className="font-mono text-neutral-700">{selectedActress}</span>
-                </h4>
-                <span className="text-xs text-neutral-500">{actressVideos.length} videos extracted</span>
+          {/* Bottom Actresses Pagination Bar with Full Page Numbers & Jump */}
+          {actressesPagination && actressesPagination.totalPages > 1 && (
+            <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-neutral-500">
+                  Page <strong className="text-neutral-900 font-semibold">{actressesPage}</strong> of <strong className="text-neutral-900 font-semibold">{actressesPagination.totalPages}</strong>
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  <button
+                    onClick={() => loadActresses(1, true)}
+                    disabled={actressesPage <= 1 || actressesLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="First Page"
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => loadActresses(actressesPage - 1, true)}
+                    disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+
+                  {/* Number pills matching source pagination */}
+                  {Array.from(new Set([
+                    1,
+                    ...(actressesPage > 3 ? ["..."] : []),
+                    ...[actressesPage - 1, actressesPage, actressesPage + 1].filter(p => p >= 1 && p <= actressesPagination.totalPages),
+                    ...(actressesPage < actressesPagination.totalPages - 2 ? ["..."] : []),
+                    actressesPagination.totalPages,
+                  ])).map((p, idx) =>
+                    typeof p === "string" ? (
+                      <span key={`actress-ellipsis-${idx}`} className="px-1 text-xs text-neutral-400">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        key={`actress-page-${p}`}
+                        onClick={() => loadActresses(p as number, true)}
+                        disabled={actressesLoading}
+                        className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold transition-all ${
+                          actressesPage === p
+                            ? "bg-neutral-900 text-white shadow-xs"
+                            : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    onClick={() => loadActresses(actressesPage + 1, true)}
+                    disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => loadActresses(actressesPagination.totalPages, true)}
+                    disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="Last Page"
+                  >
+                    <ChevronsRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {actressVideos.map((v, i) => (
-                  <div key={i} className="p-2 border border-neutral-100 rounded-lg bg-neutral-50 space-y-1">
-                    <div className="font-mono text-xs font-bold text-neutral-800">{v.code || "N/A"}</div>
-                    <div className="text-xs text-neutral-600 line-clamp-1">{v.title}</div>
-                    <div className="text-[10px] text-neutral-400">{v.duration}</div>
+            </div>
+          )}
+
+          {/* SELECTED ACTRESS VIDEOS SECTION (WITH DIRECT URL PAGINATION) */}
+          {selectedActress && (
+            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                    <User className="w-5 h-5 text-neutral-500" />
                   </div>
-                ))}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-neutral-900">
+                        {selectedActressName || selectedActress}
+                      </h4>
+                      <span className="text-xs font-mono bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded border border-neutral-200">
+                        /actress/{selectedActress}
+                      </span>
+                    </div>
+                    <div className="text-xs text-neutral-500 flex items-center gap-2 mt-0.5">
+                      <span>Source:</span>
+                      <a
+                        href={actressVideosPage > 1 ? `https://javtiful.com/actress/${selectedActress}?page=${actressVideosPage}` : `https://javtiful.com/actress/${selectedActress}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-neutral-700 underline inline-flex items-center gap-1"
+                      >
+                        javtiful.com/actress/{selectedActress}{actressVideosPage > 1 ? `?page=${actressVideosPage}` : ""}
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedActress(null);
+                      setSelectedActressName(null);
+                      setActressVideos([]);
+                      setActressVideosPagination(null);
+                    }}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 text-xs"
+                    title="Close actress videos"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
+              {/* Actress Videos Pagination Bar (Top) */}
+              {actressVideosPagination && actressVideosPagination.totalPages > 1 && (
+                <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                  <div className="text-neutral-600">
+                    Showing <strong className="text-neutral-900">{actressVideos.length}</strong> releases on <strong className="text-neutral-900">Page {actressVideosPage}</strong> of <strong className="text-neutral-900">{actressVideosPagination.totalPages}</strong>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, 1)}
+                      disabled={actressVideosPage <= 1 || actressVideosLoading}
+                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      title="First Page"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage - 1)}
+                      disabled={!actressVideosPagination.hasPrev || actressVideosPage <= 1 || actressVideosLoading}
+                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      <span>Prev</span>
+                    </button>
+
+                    {/* Page Numbers */}
+                    {Array.from(new Set([
+                      1,
+                      ...(actressVideosPage > 3 ? ["..."] : []),
+                      ...[actressVideosPage - 1, actressVideosPage, actressVideosPage + 1].filter(p => p >= 1 && p <= actressVideosPagination.totalPages),
+                      ...(actressVideosPage < actressVideosPagination.totalPages - 2 ? ["..."] : []),
+                      actressVideosPagination.totalPages,
+                    ])).map((p, idx) =>
+                      typeof p === "string" ? (
+                        <span key={`av-ellipsis-${idx}`} className="px-1 text-xs text-neutral-400">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`av-page-${p}`}
+                          onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, p as number)}
+                          disabled={actressVideosLoading}
+                          className={`min-w-[28px] h-7 rounded text-xs font-semibold ${
+                            actressVideosPage === p
+                              ? "bg-neutral-900 text-white"
+                              : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage + 1)}
+                      disabled={!actressVideosPagination.hasNext || actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
+                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPagination.totalPages)}
+                      disabled={actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
+                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      title="Last Page"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {actressVideosLoading ? (
+                <div className="py-12 text-center text-xs text-neutral-500 space-y-2">
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-neutral-400" />
+                  <div>Loading page {actressVideosPage} of {selectedActressName || selectedActress}...</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {actressVideos.map((v, i) => (
+                    <div key={i} className="p-3 border border-neutral-200 rounded-xl bg-white shadow-2xs space-y-2 flex flex-col justify-between hover:border-neutral-300 transition-colors">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs font-bold text-neutral-900 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                            {v.code || "NO CODE"}
+                          </span>
+                          {v.duration && (
+                            <span className="text-[10px] text-neutral-500 font-mono flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              {v.duration}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-neutral-800 font-medium line-clamp-2" title={v.title}>
+                          {v.title}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => inspectPostDetails(v)}
+                          className="text-[11px] text-neutral-600 hover:text-neutral-900 font-medium underline"
+                        >
+                          Inspect
+                        </button>
+                        {v.code && !v.isDuplicate && (
+                          <button
+                            onClick={() => registerItemInRegistry(v)}
+                            disabled={registeringCode === v.code}
+                            className="px-2 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] font-medium"
+                          >
+                            + Register
+                          </button>
+                        )}
+                        {v.isDuplicate && (
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            In Registry
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actress Videos Pagination Bar (Bottom) */}
+              {actressVideosPagination && actressVideosPagination.totalPages > 1 && (
+                <div className="pt-2 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                  <div className="text-neutral-500">
+                    Page <strong className="text-neutral-900 font-semibold">{actressVideosPage}</strong> of <strong className="text-neutral-900 font-semibold">{actressVideosPagination.totalPages}</strong>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, 1)}
+                      disabled={actressVideosPage <= 1 || actressVideosLoading}
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs"
+                      title="First Page"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage - 1)}
+                      disabled={!actressVideosPagination.hasPrev || actressVideosPage <= 1 || actressVideosLoading}
+                      className="px-2.5 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Prev</span>
+                    </button>
+                    <span className="px-2.5 py-1 text-xs font-bold bg-neutral-900 text-white rounded-lg">
+                      Page {actressVideosPage} / {actressVideosPagination.totalPages}
+                    </span>
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage + 1)}
+                      disabled={!actressVideosPagination.hasNext || actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
+                      className="px-2.5 py-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPagination.totalPages)}
+                      disabled={actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs"
+                      title="Last Page"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1384,43 +1769,106 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
       {/* TAB 4: STUDIOS */}
       {activeTab === "studios" && (
         <div className="space-y-4">
-          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex items-center justify-between">
+          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
-                Javtiful Studios & Channels Directory (/channels)
-              </h3>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                Lists top channels and production studios with indexed releases.
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
+                  Javtiful Studios & Channels Directory (/channels)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
+                  Page {studiosPage} {studiosPagination ? `of ${studiosPagination.totalPages}` : ""}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>Browse studio channels from source:</span>
+                <a
+                  href={studiosPage > 1 ? `https://javtiful.com/channels?page=${studiosPage}` : `https://javtiful.com/channels`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-[11px] text-neutral-700 hover:text-neutral-900 underline inline-flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200"
+                >
+                  <span>javtiful.com/channels{studiosPage > 1 ? `?page=${studiosPage}` : ""}</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               </p>
             </div>
-            <button
-              onClick={() => {
-                setStudios([]);
-                loadStudios();
-              }}
-              disabled={studiosLoading}
-              className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs flex items-center gap-1.5"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${studiosLoading ? "animate-spin" : ""}`} />
-              <span>Reload</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                id="btn-reload-studios"
+                onClick={() => loadStudios(studiosPage, true)}
+                disabled={studiosLoading}
+                className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${studiosLoading ? "animate-spin" : ""}`} />
+                <span>Reload Page</span>
+              </button>
+            </div>
           </div>
 
+          {/* Top Pagination Control */}
+          {studiosPagination && studiosPagination.totalPages > 1 && (
+            <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-xs">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-neutral-500">
+                  Showing studios on <strong className="text-neutral-900">Page {studiosPage}</strong> of <strong className="text-neutral-900">{studiosPagination.totalPages}</strong>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => loadStudios(1, true)}
+                    disabled={studiosPage <= 1 || studiosLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="First Page"
+                  >
+                    <ChevronsLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => loadStudios(studiosPage - 1, true)}
+                    disabled={!studiosPagination.hasPrev || studiosPage <= 1 || studiosLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+                  <span className="px-2 py-1 text-xs font-semibold bg-neutral-900 text-white rounded-lg min-w-[32px] text-center">
+                    {studiosPage}
+                  </span>
+                  <button
+                    onClick={() => loadStudios(studiosPage + 1, true)}
+                    disabled={!studiosPagination.hasNext || studiosPage >= studiosPagination.totalPages || studiosLoading}
+                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => loadStudios(studiosPagination.totalPages, true)}
+                    disabled={studiosPage >= studiosPagination.totalPages || studiosLoading}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                    title="Last Page"
+                  >
+                    <ChevronsRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {studiosLoading ? (
-            <div className="py-12 text-center text-xs text-neutral-500">
-              Loading studios from https://javtiful.com/channels...
+            <div className="py-16 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-3">
+              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-neutral-400" />
+              <div>Loading studios from https://javtiful.com/channels{studiosPage > 1 ? `?page=${studiosPage}` : ""}...</div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {studios.map((s) => (
                 <div
                   key={s.slug}
-                  onClick={() => viewStudioVideos(s.slug)}
-                  className={`bg-white border rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 transition-all flex flex-col items-center text-center space-y-2 ${
-                    selectedStudio === s.slug ? "border-neutral-900 ring-2 ring-neutral-900/10" : "border-neutral-200"
+                  onClick={() => viewStudioVideos(s.slug, s.name, 1)}
+                  className={`bg-white border rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 hover:shadow-sm transition-all flex flex-col items-center text-center space-y-2 group ${
+                    selectedStudio === s.slug ? "border-neutral-900 ring-2 ring-neutral-900/10 bg-neutral-50/50" : "border-neutral-200"
                   }`}
                 >
-                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center p-2">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden bg-neutral-100 flex items-center justify-center p-2 border border-neutral-200 group-hover:scale-105 transition-transform">
                     {s.thumbnail ? (
                       <img
                         src={s.thumbnail}
@@ -1432,34 +1880,170 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                       <Building className="w-6 h-6 text-neutral-400" />
                     )}
                   </div>
-                  <div>
-                    <div className="text-xs font-semibold text-neutral-900 line-clamp-1">{s.name}</div>
-                    {s.videoCount !== undefined && (
-                      <div className="text-[11px] text-neutral-400">{s.videoCount} videos</div>
+                  <div className="w-full">
+                    <div className="text-xs font-semibold text-neutral-900 line-clamp-1 group-hover:text-neutral-950">{s.name}</div>
+                    {s.videoCount !== undefined ? (
+                      <div className="text-[11px] text-neutral-500 mt-0.5">{s.videoCount} videos</div>
+                    ) : (
+                      <div className="text-[11px] text-neutral-400 mt-0.5 font-mono truncate">{s.slug}</div>
                     )}
+                  </div>
+                  <div className="text-[10px] text-neutral-400 group-hover:text-neutral-700 font-medium flex items-center gap-0.5 pt-1">
+                    <span>View releases</span>
+                    <ChevronRight className="w-3 h-3" />
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {selectedStudio && studioVideos.length > 0 && (
-            <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold text-neutral-900">
-                  Videos for studio: <span className="font-mono text-neutral-700">{selectedStudio}</span>
-                </h4>
-                <span className="text-xs text-neutral-500">{studioVideos.length} videos extracted</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {studioVideos.map((v, i) => (
-                  <div key={i} className="p-2 border border-neutral-100 rounded-lg bg-neutral-50 space-y-1">
-                    <div className="font-mono text-xs font-bold text-neutral-800">{v.code || "N/A"}</div>
-                    <div className="text-xs text-neutral-600 line-clamp-1">{v.title}</div>
-                    <div className="text-[10px] text-neutral-400">{v.duration}</div>
+          {/* SELECTED STUDIO VIDEOS */}
+          {selectedStudio && (
+            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                    <Building className="w-5 h-5 text-neutral-500" />
                   </div>
-                ))}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-neutral-900">
+                        {selectedStudioName || selectedStudio}
+                      </h4>
+                      <span className="text-xs font-mono bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded border border-neutral-200">
+                        /channel/{selectedStudio}
+                      </span>
+                    </div>
+                    <div className="text-xs text-neutral-500 flex items-center gap-2 mt-0.5">
+                      <span>Source:</span>
+                      <a
+                        href={studioVideosPage > 1 ? `https://javtiful.com/channel/${selectedStudio}?page=${studioVideosPage}` : `https://javtiful.com/channel/${selectedStudio}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono text-neutral-700 underline inline-flex items-center gap-1"
+                      >
+                        javtiful.com/channel/{selectedStudio}{studioVideosPage > 1 ? `?page=${studioVideosPage}` : ""}
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedStudio(null);
+                      setSelectedStudioName(null);
+                      setStudioVideos([]);
+                      setStudioVideosPagination(null);
+                    }}
+                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 text-xs"
+                    title="Close studio releases"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
+              {/* Studio Videos Pagination */}
+              {studioVideosPagination && studioVideosPagination.totalPages > 1 && (
+                <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                  <div className="text-neutral-600">
+                    Showing <strong className="text-neutral-900">{studioVideos.length}</strong> releases on <strong className="text-neutral-900">Page {studioVideosPage}</strong> of <strong className="text-neutral-900">{studioVideosPagination.totalPages}</strong>
+                  </div>
+
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <button
+                      onClick={() => viewStudioVideos(selectedStudio, selectedStudioName || undefined, 1)}
+                      disabled={studioVideosPage <= 1 || studioVideosLoading}
+                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      title="First Page"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => viewStudioVideos(selectedStudio, selectedStudioName || undefined, studioVideosPage - 1)}
+                      disabled={!studioVideosPagination.hasPrev || studioVideosPage <= 1 || studioVideosLoading}
+                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                      <span>Prev</span>
+                    </button>
+                    <span className="px-2.5 py-1 text-xs font-bold bg-neutral-900 text-white rounded">
+                      Page {studioVideosPage}
+                    </span>
+                    <button
+                      onClick={() => viewStudioVideos(selectedStudio, selectedStudioName || undefined, studioVideosPage + 1)}
+                      disabled={!studioVideosPagination.hasNext || studioVideosPage >= studioVideosPagination.totalPages || studioVideosLoading}
+                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => viewStudioVideos(selectedStudio, selectedStudioName || undefined, studioVideosPagination.totalPages)}
+                      disabled={studioVideosPage >= studioVideosPagination.totalPages || studioVideosLoading}
+                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      title="Last Page"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {studioVideosLoading ? (
+                <div className="py-12 text-center text-xs text-neutral-500 space-y-2">
+                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-neutral-400" />
+                  <div>Loading page {studioVideosPage} of {selectedStudioName || selectedStudio}...</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {studioVideos.map((v, i) => (
+                    <div key={i} className="p-3 border border-neutral-200 rounded-xl bg-white shadow-2xs space-y-2 flex flex-col justify-between hover:border-neutral-300 transition-colors">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs font-bold text-neutral-900 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                            {v.code || "NO CODE"}
+                          </span>
+                          {v.duration && (
+                            <span className="text-[10px] text-neutral-500 font-mono flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              {v.duration}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-neutral-800 font-medium line-clamp-2" title={v.title}>
+                          {v.title}
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => inspectPostDetails(v)}
+                          className="text-[11px] text-neutral-600 hover:text-neutral-900 font-medium underline"
+                        >
+                          Inspect
+                        </button>
+                        {v.code && !v.isDuplicate && (
+                          <button
+                            onClick={() => registerItemInRegistry(v)}
+                            disabled={registeringCode === v.code}
+                            className="px-2 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] font-medium"
+                          >
+                            + Register
+                          </button>
+                        )}
+                        {v.isDuplicate && (
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                            In Registry
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

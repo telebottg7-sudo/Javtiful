@@ -5,6 +5,8 @@ import {
 } from "../schema/types";
 import {
   normalizeCode,
+  getCodeCategory,
+  getCodeFilePath,
   createInitialCodesIndex,
 } from "../schema/normalizers";
 import { validateCodesIndex } from "../schema/validators";
@@ -91,6 +93,37 @@ export class CodeRegistryService {
   /**
    * Fast O(1) check for a single video code.
    */
+
+  /**
+   * Returns all available code categories by aggregating them from the in-memory index.
+   */
+  async getCategories(): Promise<string[]> {
+    const { index } = await this.getOrLoadIndex();
+    const categories = new Set<string>();
+    for (const code of Object.keys(index.codes)) {
+      const cat = getCodeCategory(code);
+      if (cat) categories.add(cat);
+    }
+    return Array.from(categories).sort();
+  }
+
+  /**
+   * Retrieves an individual code file directly from GitHub.
+   */
+  async getCodeFile(code: string): Promise<any | null> {
+    const path = getCodeFilePath(code);
+    if (!path) return null;
+    try {
+      const result = await this.storage.readFile(path);
+      return result.data;
+    } catch (err: any) {
+      if (err.message && err.message.includes("404")) {
+        return null;
+      }
+      throw err;
+    }
+  }
+
   async checkCode(rawCode: string): Promise<CodeCheckResult> {
     const normalized = normalizeCode(rawCode);
     if (!normalized) {

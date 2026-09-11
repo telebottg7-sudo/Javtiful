@@ -19,6 +19,7 @@ import {
   getShardLetter,
   getActressPath,
   getStudioPath,
+  getCodeFilePath,
   createInitialActressesIndex,
   createInitialStudiosIndex,
   createInitialVideosIndex,
@@ -94,7 +95,9 @@ export class IngestionService {
   private cachedVideos: VideosIndexFile | null = null;
   private cachedActresses: ActressesIndexFile | null = null;
   private cachedStudios: StudiosIndexFile | null = null;
-  private lastFetchedAt = 0;
+  private lastVideosFetchedAt = 0;
+  private lastActressesFetchedAt = 0;
+  private lastStudiosFetchedAt = 0;
   private readonly cacheTtlMs = 60 * 1000;
 
   constructor(storage: GitHubStorage, codeRegistry: CodeRegistryService) {
@@ -107,7 +110,7 @@ export class IngestionService {
    */
   async getVideosIndex(forceRefresh = false): Promise<VideosIndexFile> {
     const now = Date.now();
-    if (!forceRefresh && this.cachedVideos && now - this.lastFetchedAt < this.cacheTtlMs) {
+    if (!forceRefresh && this.cachedVideos && now - this.lastVideosFetchedAt < this.cacheTtlMs) {
       return this.cachedVideos;
     }
 
@@ -115,6 +118,7 @@ export class IngestionService {
     if (!file) {
       const initial = createInitialVideosIndex();
       this.cachedVideos = initial;
+      this.lastVideosFetchedAt = Date.now();
       return initial;
     }
 
@@ -128,10 +132,12 @@ export class IngestionService {
         videos: Array.isArray(file.data?.videos) ? file.data.videos : [],
       };
       this.cachedVideos = safe;
+      this.lastVideosFetchedAt = Date.now();
       return safe;
     }
 
     this.cachedVideos = file.data;
+    this.lastVideosFetchedAt = Date.now();
     return file.data;
   }
 
@@ -140,7 +146,7 @@ export class IngestionService {
    */
   async getActressesIndex(forceRefresh = false): Promise<ActressesIndexFile> {
     const now = Date.now();
-    if (!forceRefresh && this.cachedActresses && now - this.lastFetchedAt < this.cacheTtlMs) {
+    if (!forceRefresh && this.cachedActresses && now - this.lastActressesFetchedAt < this.cacheTtlMs) {
       return this.cachedActresses;
     }
 
@@ -148,6 +154,7 @@ export class IngestionService {
     if (!file) {
       const initial = createInitialActressesIndex();
       this.cachedActresses = initial;
+      this.lastActressesFetchedAt = Date.now();
       return initial;
     }
 
@@ -161,10 +168,12 @@ export class IngestionService {
         actresses: Array.isArray(file.data?.actresses) ? file.data.actresses : [],
       };
       this.cachedActresses = safe;
+      this.lastActressesFetchedAt = Date.now();
       return safe;
     }
 
     this.cachedActresses = file.data;
+    this.lastActressesFetchedAt = Date.now();
     return file.data;
   }
 
@@ -173,7 +182,7 @@ export class IngestionService {
    */
   async getStudiosIndex(forceRefresh = false): Promise<StudiosIndexFile> {
     const now = Date.now();
-    if (!forceRefresh && this.cachedStudios && now - this.lastFetchedAt < this.cacheTtlMs) {
+    if (!forceRefresh && this.cachedStudios && now - this.lastStudiosFetchedAt < this.cacheTtlMs) {
       return this.cachedStudios;
     }
 
@@ -181,6 +190,7 @@ export class IngestionService {
     if (!file) {
       const initial = createInitialStudiosIndex();
       this.cachedStudios = initial;
+      this.lastStudiosFetchedAt = Date.now();
       return initial;
     }
 
@@ -194,10 +204,12 @@ export class IngestionService {
         studios: Array.isArray(file.data?.studios) ? file.data.studios : [],
       };
       this.cachedStudios = safe;
+      this.lastStudiosFetchedAt = Date.now();
       return safe;
     }
 
     this.cachedStudios = file.data;
+    this.lastStudiosFetchedAt = Date.now();
     return file.data;
   }
 
@@ -462,6 +474,11 @@ export class IngestionService {
       filesToCommit.push({ path: this.studiosIndexPath, content: updatedStudiosIdx });
     }
 
+    const codePath = getCodeFilePath(normalizedCode);
+    if (codePath) {
+      filesToCommit.push({ path: codePath, content: videoEntry });
+    }
+
     // 4. Commit all files using atomic batch commit
     const commitMsg = `[Ingest] Ingest video ${normalizedCode} (${item.title.substring(0, 50)})`;
     await this.storage.batchCommit(filesToCommit, commitMsg);
@@ -483,7 +500,9 @@ export class IngestionService {
     this.cachedVideos = updatedVideosIdx;
     this.cachedActresses = actressesIdx;
     this.cachedStudios = studiosIdx;
-    this.lastFetchedAt = Date.now();
+    this.lastVideosFetchedAt = Date.now();
+    this.lastActressesFetchedAt = Date.now();
+    this.lastStudiosFetchedAt = Date.now();
 
     return {
       success: true,
@@ -847,6 +866,15 @@ export class IngestionService {
       }
     }
 
+    for (const videoEntry of newVideoEntries) {
+      if (videoEntry.code) {
+        const codePath = getCodeFilePath(videoEntry.code);
+        if (codePath) {
+          filesToCommit.push({ path: codePath, content: videoEntry });
+        }
+      }
+    }
+
     // 7. Execute single batch commit (STOP RULE: Exactly 1 commit for all changes)
     const commitMsg =
       options?.commitMessage ||
@@ -860,7 +888,9 @@ export class IngestionService {
     this.cachedVideos = updatedVideosIdx;
     this.cachedActresses = updatedActressesIdx;
     this.cachedStudios = updatedStudiosIdx;
-    this.lastFetchedAt = Date.now();
+    this.lastVideosFetchedAt = Date.now();
+    this.lastActressesFetchedAt = Date.now();
+    this.lastStudiosFetchedAt = Date.now();
 
     return {
       success: true,

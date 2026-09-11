@@ -5,6 +5,7 @@ import { githubStorage } from "./server/storage";
 import { checkDatabaseIndexes, initializeDatabaseIndexes } from "./server/schema";
 import { codeRegistryService, ingestionService, searchService, maintenanceService } from "./server/services";
 import { javtifulScraper } from "./server/scrapers";
+import { normalizeCode, getCodeFilePath } from "./server/schema/normalizers";
 
 async function startServer() {
   const app = express();
@@ -137,6 +138,33 @@ async function startServer() {
       res.status(500).json({ success: false, error: errorMsg });
     }
   });
+
+
+  app.get("/api/code-categories", async (req, res) => {
+    try {
+      const categories = await codeRegistryService.getCategories();
+      res.json({ success: true, data: categories });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ success: false, error: errorMsg });
+    }
+  });
+
+  app.get("/api/code/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const data = await codeRegistryService.getCodeFile(code);
+      if (!data) {
+        return res.status(404).json({ success: false, error: "Code not found" });
+      }
+      res.json({ success: true, data });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ success: false, error: errorMsg });
+    }
+  });
+
+
 
   // Code Registry: Stats (Step 4)
   app.get("/api/codes/stats", async (req, res) => {

@@ -35,6 +35,15 @@ export interface JavtifulStudioItem {
   thumbnail?: string;
 }
 
+export interface JavtifulPagination {
+  currentPage: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  nextPage?: number;
+  prevPage?: number;
+}
+
 export interface JavtifulScrapeResult {
   source: string;
   page: number;
@@ -42,6 +51,7 @@ export interface JavtifulScrapeResult {
   uniqueCount: number;
   duplicateCount: number;
   items: JavtifulVideoItem[];
+  pagination?: JavtifulPagination;
 }
 
 export class JavtifulScraper {
@@ -51,6 +61,32 @@ export class JavtifulScraper {
 
   constructor(codeRegistry: CodeRegistryService) {
     this.codeRegistry = codeRegistry;
+  }
+
+  private async fetchWithRetry(url: string, retries = 2, timeoutMs = 15000): Promise<string> {
+    for (let i = 0; i <= retries; i++) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { headers: this.headers, signal: controller.signal });
+        clearTimeout(id);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const text = await res.text();
+        if (!text || text.length < 100) {
+           throw new Error("Empty or malformed response");
+        }
+        return text;
+      } catch (err) {
+        clearTimeout(id);
+        if (i === retries) {
+          throw new Error(`Failed to fetch ${url} after ${retries} retries: ${(err as Error).message}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, i)));
+      }
+    }
+    throw new Error("Unreachable");
   }
 
   private get headers(): Record<string, string> {
@@ -150,18 +186,13 @@ export class JavtifulScraper {
    */
   async scrapeCatalogPage(page = 1, options?: { filterDuplicates?: boolean; enrichDetails?: boolean }): Promise<JavtifulScrapeResult> {
     const url = page > 1 ? `${this.primaryCatalogUrl}?page=${page}` : this.primaryCatalogUrl;
-    const res = await fetch(url, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch Javtiful catalog: HTTP ${res.status} from ${url}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(url);
     const items = this.parseCardsFromHtml(html);
 
     // Apply deduplication against CodeRegistryService
     const codes = items.map((i) => i.code).filter(Boolean);
     const dedupResults = await this.codeRegistry.checkBatch(codes);
-    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode || r.rawCode, r]));
+    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode, r]));
 
     for (const item of items) {
       if (item.code) {
@@ -224,18 +255,13 @@ export class JavtifulScraper {
    */
   async searchByKeyword(keyword: string, page = 1, options?: { filterDuplicates?: boolean; enrichDetails?: boolean }): Promise<JavtifulScrapeResult> {
     const searchUrl = `${this.baseUrl}/search?q=${encodeURIComponent(keyword.trim())}${page > 1 ? `&page=${page}` : ""}`;
-    const res = await fetch(searchUrl, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to search Javtiful: HTTP ${res.status} for query "${keyword}"`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(searchUrl);
     const items = this.parseCardsFromHtml(html);
 
     // Apply deduplication against CodeRegistryService
     const codes = items.map((i) => i.code).filter(Boolean);
     const dedupResults = await this.codeRegistry.checkBatch(codes);
-    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode || r.rawCode, r]));
+    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode, r]));
 
     for (const item of items) {
       if (item.code) {
@@ -289,12 +315,7 @@ export class JavtifulScraper {
    */
   async getPostDetails(urlOrPath: string): Promise<JavtifulVideoItem> {
     const postUrl = this.makeAbsoluteUrl(urlOrPath);
-    const res = await fetch(postUrl, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch post page: HTTP ${res.status} from ${postUrl}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(postUrl);
     const $ = cheerio.load(html);
 
     // 1. JSON-LD structured VideoObject
@@ -403,7 +424,7 @@ export class JavtifulScraper {
     }
 
     return {
-      code: code || rawCode,
+      code: code, // strictly use normalized code
       rawCode,
       title,
       actress: actresses[0]?.name,
@@ -421,16 +442,57 @@ export class JavtifulScraper {
   }
 
   /**
-   * Scrapes actress directory listing from https://javtiful.com/actresses
+   * Parse pagination metadata from page HTML
    */
-  async getActresses(page = 1): Promise<{ actresses: JavtifulActressItem[]; totalFound: number }> {
-    const url = page > 1 ? `${this.baseUrl}/actresses?page=${page}` : `${this.baseUrl}/actresses`;
-    const res = await fetch(url, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch actresses: HTTP ${res.status}`);
+  private parsePagination($: cheerio.CheerioAPI, currentPage: number): JavtifulPagination {
+    let maxPage = currentPage;
+    let hasNext = false;
+    let hasPrev = currentPage > 1;
+
+    $("nav.front-pagination a.front-pagination-link, .pagination a, nav a[href*=\"page=\"]").each((_, el) => {
+      const text = $(el).text().trim().toLowerCase();
+      const href = $(el).attr("href") || "";
+      const pageMatch = href.match(/page=(\d+)/i);
+      if (pageMatch) {
+        const p = parseInt(pageMatch[1], 10);
+        if (p > maxPage) maxPage = p;
+      }
+      const num = parseInt(text, 10);
+      if (!isNaN(num) && num > maxPage) {
+        maxPage = num;
+      }
+      if (text.includes("next")) {
+        hasNext = true;
+      }
+      if (text.includes("prev") || text.includes("previous")) {
+        hasPrev = true;
+      }
+    });
+
+    if (currentPage < maxPage) {
+      hasNext = true;
     }
 
-    const html = await res.text();
+    return {
+      currentPage,
+      totalPages: Math.max(1, maxPage),
+      hasNext,
+      hasPrev: currentPage > 1,
+      nextPage: hasNext ? currentPage + 1 : undefined,
+      prevPage: currentPage > 1 ? currentPage - 1 : undefined,
+    };
+  }
+
+  /**
+   * Scrapes actress directory listing from https://javtiful.com/actresses
+   */
+  async getActresses(page = 1): Promise<{
+    actresses: JavtifulActressItem[];
+    totalFound: number;
+    pagination: JavtifulPagination;
+  }> {
+    const url = page > 1 ? `${this.baseUrl}/actresses?page=${page}` : `${this.baseUrl}/actresses`;
+    const html = await this.fetchWithRetry(url);
     const $ = cheerio.load(html);
     const actresses: JavtifulActressItem[] = [];
 
@@ -461,7 +523,9 @@ export class JavtifulScraper {
       }
     });
 
-    return { actresses, totalFound: actresses.length };
+    const pagination = this.parsePagination($, page);
+
+    return { actresses, totalFound: actresses.length, pagination };
   }
 
   /**
@@ -472,18 +536,14 @@ export class JavtifulScraper {
       ? `${this.baseUrl}/actress/${actressSlug}?page=${page}`
       : `${this.baseUrl}/actress/${actressSlug}`;
 
-    const res = await fetch(url, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch actress videos: HTTP ${res.status} from ${url}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(url);
+    const $ = cheerio.load(html);
     const items = this.parseCardsFromHtml(html);
 
     // Apply deduplication
     const codes = items.map((i) => i.code).filter(Boolean);
     const dedupResults = await this.codeRegistry.checkBatch(codes);
-    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode || r.rawCode, r]));
+    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode, r]));
 
     for (const item of items) {
       item.actressSlug = actressSlug;
@@ -496,6 +556,8 @@ export class JavtifulScraper {
       }
     }
 
+    const pagination = this.parsePagination($, page);
+
     return {
       source: url,
       page,
@@ -503,20 +565,20 @@ export class JavtifulScraper {
       uniqueCount: items.filter((i) => !i.isDuplicate).length,
       duplicateCount: items.filter((i) => i.isDuplicate).length,
       items,
+      pagination,
     };
   }
 
   /**
    * Scrapes studio/channels directory listing from https://javtiful.com/channels
    */
-  async getStudios(page = 1): Promise<{ studios: JavtifulStudioItem[]; totalFound: number }> {
+  async getStudios(page = 1): Promise<{
+    studios: JavtifulStudioItem[];
+    totalFound: number;
+    pagination: JavtifulPagination;
+  }> {
     const url = page > 1 ? `${this.baseUrl}/channels?page=${page}` : `${this.baseUrl}/channels`;
-    const res = await fetch(url, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch studios/channels: HTTP ${res.status}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(url);
     const $ = cheerio.load(html);
     const studios: JavtifulStudioItem[] = [];
 
@@ -547,7 +609,9 @@ export class JavtifulScraper {
       }
     });
 
-    return { studios, totalFound: studios.length };
+    const pagination = this.parsePagination($, page);
+
+    return { studios, totalFound: studios.length, pagination };
   }
 
   /**
@@ -558,18 +622,14 @@ export class JavtifulScraper {
       ? `${this.baseUrl}/channel/${studioSlug}?page=${page}`
       : `${this.baseUrl}/channel/${studioSlug}`;
 
-    const res = await fetch(url, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch studio videos: HTTP ${res.status} from ${url}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(url);
+    const $ = cheerio.load(html);
     const items = this.parseCardsFromHtml(html);
 
     // Apply deduplication
     const codes = items.map((i) => i.code).filter(Boolean);
     const dedupResults = await this.codeRegistry.checkBatch(codes);
-    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode || r.rawCode, r]));
+    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode, r]));
 
     for (const item of items) {
       item.studioSlug = studioSlug;
@@ -582,6 +642,8 @@ export class JavtifulScraper {
       }
     }
 
+    const pagination = this.parsePagination($, page);
+
     return {
       source: url,
       page,
@@ -589,6 +651,7 @@ export class JavtifulScraper {
       uniqueCount: items.filter((i) => !i.isDuplicate).length,
       duplicateCount: items.filter((i) => i.isDuplicate).length,
       items,
+      pagination,
     };
   }
 
@@ -639,7 +702,7 @@ export class JavtifulScraper {
       const { code, rawCode } = this.extractCode(title, postUrl);
 
       items.push({
-        code: code || rawCode,
+        code: code, // strictly use normalized code
         rawCode,
         title,
         actress: actressName || undefined,
@@ -670,7 +733,7 @@ export class JavtifulScraper {
         const { code, rawCode } = this.extractCode(title, postUrl);
 
         items.push({
-          code: code || rawCode,
+          code: code, // strictly use normalized code
           rawCode,
           title,
           coverImage: coverImage ? this.makeAbsoluteUrl(coverImage) : undefined,
@@ -692,18 +755,13 @@ export class JavtifulScraper {
     options?: { filterDuplicates?: boolean; enrichDetails?: boolean; maxEnrich?: number }
   ): Promise<JavtifulScrapeResult> {
     const targetUrl = this.makeAbsoluteUrl(pageUrl);
-    const res = await fetch(targetUrl, { headers: this.headers });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch page: HTTP ${res.status} from ${targetUrl}`);
-    }
-
-    const html = await res.text();
+    const html = await this.fetchWithRetry(targetUrl);
     const items = this.parseCardsFromHtml(html);
 
     // Apply deduplication against CodeRegistryService
     const codes = items.map((i) => i.code).filter(Boolean);
     const dedupResults = await this.codeRegistry.checkBatch(codes);
-    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode || r.rawCode, r]));
+    const dedupMap = new Map(dedupResults.map((r) => [r.normalizedCode, r]));
 
     for (const item of items) {
       if (item.code) {

@@ -72,9 +72,7 @@ export function normalizeCode(rawCode: string): string | null {
   // Standard alphanumeric code format: 2-8 letters, optional space/hyphen/underscore, 2-7 digits
   const standardMatch = trimmed.match(/^([A-Z0-9]{2,8})[\s\-_]+([0-9]{2,7})$/);
   if (standardMatch) {
-    const prefix = standardMatch[1];
-    const num = standardMatch[2];
-    return `${prefix}-${num}`;
+    return `${standardMatch[1]}-${standardMatch[2]}`;
   }
 
   // Codes without separators like "SSIS001"
@@ -83,13 +81,39 @@ export function normalizeCode(rawCode: string): string | null {
     return `${compactMatch[1]}-${compactMatch[2]}`;
   }
 
-  // Clean fallback: replace spaces and underscores with hyphens
-  const cleaned = trimmed.replace(/[\s_]+/g, "-");
-  if (/^[A-Z0-9\-]{3,25}$/.test(cleaned)) {
-    return cleaned;
-  }
-
   return null;
+}
+
+/**
+ * Detects category automatically from normalized video code.
+ * E.g., "DSOD-123" -> "DSOD"
+ * "10MUSUME-050515-01" -> "10MUSUME"
+ */
+export function getCodeCategory(code: string): string | null {
+  const normalized = normalizeCode(code);
+  if (!normalized) return null;
+
+  const parts = normalized.split("-");
+  if (parts.length > 0 && parts[0]) {
+    const category = parts[0].toUpperCase();
+    if (/^[A-Z0-9]+$/.test(category)) {
+      return category;
+    }
+  }
+  return null;
+}
+
+/**
+ * Computes canonical relative storage path for a video code entity.
+ * e.g. "DSOD-123" -> "codes/DSOD/DSOD-123.json"
+ */
+export function getCodeFilePath(code: string): string | null {
+  const normalized = normalizeCode(code);
+  if (!normalized) return null;
+  const category = getCodeCategory(normalized);
+  if (!category) return null;
+  
+  return `codes/${category}/${normalized}.json`;
 }
 
 /**
