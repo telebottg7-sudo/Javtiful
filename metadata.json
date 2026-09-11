@@ -1,6 +1,6 @@
 {
-  "name": "Remix: Video Link Extractor",
-  "description": "A tool to extract video titles and URLs from a given website.",
+  "name": "Avdb",
+  "description": "Minimalist web application for searching, scraping, organizing, and browsing video metadata with GitHub JSON persistence.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
