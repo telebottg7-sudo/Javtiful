@@ -1,0 +1,6 @@
+{
+  "name": "Remix: Video Link Extractor",
+  "description": "A tool to extract video titles and URLs from a given website.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

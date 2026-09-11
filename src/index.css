@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #09090b;
+  --color-accent: #8b5cf6;
+  --color-text-main: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+body {
+  @apply bg-bg text-text-main font-sans;
+}
