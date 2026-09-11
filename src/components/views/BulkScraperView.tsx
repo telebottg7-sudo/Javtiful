@@ -92,6 +92,8 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
   } | null>(null);
   const [selectedActress, setSelectedActress] = useState<string | null>(null);
   const [selectedActressName, setSelectedActressName] = useState<string | null>(null);
+  const [selectedActressThumbnail, setSelectedActressThumbnail] = useState<string | null>(null);
+  const [selectedActressVideoCount, setSelectedActressVideoCount] = useState<number | undefined>(undefined);
   const [actressVideos, setActressVideos] = useState<JavtifulVideoItem[]>([]);
   const [actressVideosPage, setActressVideosPage] = useState<number>(1);
   const [actressVideosLoading, setActressVideosLoading] = useState<boolean>(false);
@@ -1337,271 +1339,108 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
       {/* TAB 3: ACTRESSES */}
       {activeTab === "actresses" && (
         <div className="space-y-4">
-          <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
-                  Javtiful Actresses Directory (/actresses)
-                </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
-                  Page {actressesPage} {actressesPagination ? `of ${actressesPagination.totalPages}` : ""}
-                </span>
-              </div>
-              <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                <span>Browse actresses directory from source:</span>
-                <a
-                  href={actressesPage > 1 ? `https://javtiful.com/actresses?page=${actressesPage}` : `https://javtiful.com/actresses`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-mono text-[11px] text-neutral-700 hover:text-neutral-900 underline inline-flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200"
-                >
-                  <span>javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                id="btn-reload-actresses"
-                onClick={() => loadActresses(actressesPage, true)}
-                disabled={actressesLoading}
-                className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${actressesLoading ? "animate-spin" : ""}`} />
-                <span>Reload Page</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Top Pagination Control */}
-          {actressesPagination && (
-            <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-xs">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-neutral-500">
-                  Showing actresses on <strong className="text-neutral-900">Page {actressesPage}</strong> of <strong className="text-neutral-900">{actressesPagination.totalPages}</strong>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    onClick={() => loadActresses(1, true)}
-                    disabled={actressesPage <= 1 || actressesLoading}
-                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
-                    title="First Page"
-                  >
-                    <ChevronsLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => loadActresses(actressesPage - 1, true)}
-                    disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
-                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Prev</span>
-                  </button>
-                  <span className="px-2 py-1 text-xs font-semibold bg-neutral-900 text-white rounded-lg min-w-[32px] text-center">
-                    {actressesPage}
-                  </span>
-                  <button
-                    onClick={() => loadActresses(actressesPage + 1, true)}
-                    disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
-                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => loadActresses(actressesPagination.totalPages, true)}
-                    disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
-                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
-                    title="Last Page"
-                  >
-                    <ChevronsRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {actressesLoading ? (
-            <div className="py-16 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-3">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-neutral-400" />
-              <div>Fetching actresses from https://javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}...</div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {actresses.map((a) => (
-                <div
-                  key={a.slug}
-                  onClick={() => viewActressVideos(a.slug, a.name, 1)}
-                  className={`bg-white border rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 hover:shadow-sm transition-all flex flex-col items-center text-center space-y-2 group ${
-                    selectedActress === a.slug ? "border-neutral-900 ring-2 ring-neutral-900/10 bg-neutral-50/50" : "border-neutral-200"
-                  }`}
-                >
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-neutral-100 flex items-center justify-center border border-neutral-200 group-hover:scale-105 transition-transform">
-                    {a.thumbnail ? (
+          {selectedActress ? (
+            /* DEDICATED ACTRESS MOVIES PAGE */
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Actress Profile & Navigation Header */}
+              <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-4">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center shadow-xs">
+                    {selectedActressThumbnail ? (
                       <img
-                        src={a.thumbnail}
-                        alt={a.name}
+                        src={selectedActressThumbnail}
+                        alt={selectedActressName || selectedActress}
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="w-8 h-8 text-neutral-400" />
+                      <User className="w-9 h-9 text-neutral-400" />
                     )}
                   </div>
-                  <div className="w-full">
-                    <div className="text-xs font-semibold text-neutral-900 line-clamp-1 group-hover:text-neutral-950">{a.name}</div>
-                    {a.videoCount !== undefined ? (
-                      <div className="text-[11px] text-neutral-500 mt-0.5">{a.videoCount} videos</div>
-                    ) : (
-                      <div className="text-[11px] text-neutral-400 mt-0.5 font-mono truncate">{a.slug}</div>
-                    )}
-                  </div>
-                  <div className="text-[10px] text-neutral-400 group-hover:text-neutral-700 font-medium flex items-center gap-0.5 pt-1">
-                    <span>View videos</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Bottom Actresses Pagination Bar with Full Page Numbers & Jump */}
-          {actressesPagination && actressesPagination.totalPages > 1 && (
-            <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-neutral-500">
-                  Page <strong className="text-neutral-900 font-semibold">{actressesPage}</strong> of <strong className="text-neutral-900 font-semibold">{actressesPagination.totalPages}</strong>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap justify-center">
-                  <button
-                    onClick={() => loadActresses(1, true)}
-                    disabled={actressesPage <= 1 || actressesLoading}
-                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
-                    title="First Page"
-                  >
-                    <ChevronsLeft className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => loadActresses(actressesPage - 1, true)}
-                    disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
-                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span>Prev</span>
-                  </button>
-
-                  {/* Number pills matching source pagination */}
-                  {Array.from(new Set([
-                    1,
-                    ...(actressesPage > 3 ? ["..."] : []),
-                    ...[actressesPage - 1, actressesPage, actressesPage + 1].filter(p => p >= 1 && p <= actressesPagination.totalPages),
-                    ...(actressesPage < actressesPagination.totalPages - 2 ? ["..."] : []),
-                    actressesPagination.totalPages,
-                  ])).map((p, idx) =>
-                    typeof p === "string" ? (
-                      <span key={`actress-ellipsis-${idx}`} className="px-1 text-xs text-neutral-400">
-                        ...
-                      </span>
-                    ) : (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
-                        key={`actress-page-${p}`}
-                        onClick={() => loadActresses(p as number, true)}
-                        disabled={actressesLoading}
-                        className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold transition-all ${
-                          actressesPage === p
-                            ? "bg-neutral-900 text-white shadow-xs"
-                            : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-                        }`}
+                        onClick={() => {
+                          setSelectedActress(null);
+                          setSelectedActressName(null);
+                          setSelectedActressThumbnail(null);
+                          setSelectedActressVideoCount(undefined);
+                          setActressVideos([]);
+                          setActressVideosPagination(null);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1 rounded-lg transition-colors mr-1"
                       >
-                        {p}
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>All Actresses</span>
                       </button>
-                    )
-                  )}
-
-                  <button
-                    onClick={() => loadActresses(actressesPage + 1, true)}
-                    disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
-                    className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
-                  >
-                    <span>Next</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-
-                  <button
-                    onClick={() => loadActresses(actressesPagination.totalPages, true)}
-                    disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
-                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
-                    title="Last Page"
-                  >
-                    <ChevronsRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SELECTED ACTRESS VIDEOS SECTION (WITH DIRECT URL PAGINATION) */}
-          {selectedActress && (
-            <div className="bg-white border border-neutral-200 rounded-xl p-5 shadow-xs space-y-4 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-100 border border-neutral-200 flex items-center justify-center">
-                    <User className="w-5 h-5 text-neutral-500" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-neutral-900">
+                      <h2 className="text-base sm:text-lg font-bold text-neutral-900">
                         {selectedActressName || selectedActress}
-                      </h4>
+                      </h2>
                       <span className="text-xs font-mono bg-neutral-100 text-neutral-700 px-2 py-0.5 rounded border border-neutral-200">
                         /actress/{selectedActress}
                       </span>
                     </div>
-                    <div className="text-xs text-neutral-500 flex items-center gap-2 mt-0.5">
-                      <span>Source:</span>
-                      <a
-                        href={actressVideosPage > 1 ? `https://javtiful.com/actress/${selectedActress}?page=${actressVideosPage}` : `https://javtiful.com/actress/${selectedActress}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-mono text-neutral-700 underline inline-flex items-center gap-1"
-                      >
-                        javtiful.com/actress/{selectedActress}{actressVideosPage > 1 ? `?page=${actressVideosPage}` : ""}
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
+
+                    <div className="flex items-center gap-3 text-xs text-neutral-500 flex-wrap">
+                      {selectedActressVideoCount !== undefined && (
+                        <span className="font-medium text-neutral-700 bg-neutral-50 px-2 py-0.5 rounded border border-neutral-200">
+                          {selectedActressVideoCount} total movies
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <span>Source:</span>
+                        <a
+                          href={actressVideosPage > 1 ? `https://javtiful.com/actress/${selectedActress}?page=${actressVideosPage}` : `https://javtiful.com/actress/${selectedActress}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-neutral-700 hover:text-neutral-950 underline inline-flex items-center gap-1"
+                        >
+                          javtiful.com/actress/{selectedActress}{actressVideosPage > 1 ? `?page=${actressVideosPage}` : ""}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start md:self-center">
+                  <button
+                    onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage)}
+                    disabled={actressVideosLoading}
+                    className="px-3 py-2 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 disabled:opacity-40 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${actressVideosLoading ? "animate-spin" : ""}`} />
+                    <span>Refresh Movies</span>
+                  </button>
                   <button
                     onClick={() => {
                       setSelectedActress(null);
                       setSelectedActressName(null);
+                      setSelectedActressThumbnail(null);
+                      setSelectedActressVideoCount(undefined);
                       setActressVideos([]);
                       setActressVideosPagination(null);
                     }}
-                    className="p-1.5 rounded-lg border border-neutral-200 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-50 text-xs"
-                    title="Close actress videos"
+                    className="px-3 py-2 rounded-lg border border-neutral-200 bg-neutral-50 hover:bg-neutral-100 text-neutral-700 text-xs font-medium flex items-center gap-1.5 transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
+                    <span>Close</span>
                   </button>
                 </div>
               </div>
 
-              {/* Actress Videos Pagination Bar (Top) */}
+              {/* Top Movies Pagination Control */}
               {actressVideosPagination && actressVideosPagination.totalPages > 1 && (
-                <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                <div className="bg-white border border-neutral-200 rounded-xl p-3 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
                   <div className="text-neutral-600">
-                    Showing <strong className="text-neutral-900">{actressVideos.length}</strong> releases on <strong className="text-neutral-900">Page {actressVideosPage}</strong> of <strong className="text-neutral-900">{actressVideosPagination.totalPages}</strong>
+                    Showing <strong className="text-neutral-900">{actressVideos.length}</strong> movies on <strong className="text-neutral-900">Page {actressVideosPage}</strong> of <strong className="text-neutral-900">{actressVideosPagination.totalPages}</strong>
                   </div>
 
                   <div className="flex items-center gap-1 flex-wrap">
                     <button
                       onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, 1)}
                       disabled={actressVideosPage <= 1 || actressVideosLoading}
-                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs"
                       title="First Page"
                     >
                       <ChevronsLeft className="w-3.5 h-3.5" />
@@ -1609,13 +1448,12 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                     <button
                       onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage - 1)}
                       disabled={!actressVideosPagination.hasPrev || actressVideosPage <= 1 || actressVideosLoading}
-                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
                     >
                       <ChevronLeft className="w-3 h-3" />
                       <span>Prev</span>
                     </button>
 
-                    {/* Page Numbers */}
                     {Array.from(new Set([
                       1,
                       ...(actressVideosPage > 3 ? ["..."] : []),
@@ -1624,18 +1462,18 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                       actressVideosPagination.totalPages,
                     ])).map((p, idx) =>
                       typeof p === "string" ? (
-                        <span key={`av-ellipsis-${idx}`} className="px-1 text-xs text-neutral-400">
+                        <span key={`av-top-ell-${idx}`} className="px-1 text-xs text-neutral-400">
                           ...
                         </span>
                       ) : (
                         <button
-                          key={`av-page-${p}`}
+                          key={`av-top-page-${p}`}
                           onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, p as number)}
                           disabled={actressVideosLoading}
-                          className={`min-w-[28px] h-7 rounded text-xs font-semibold ${
+                          className={`min-w-[28px] h-7 rounded-lg text-xs font-semibold ${
                             actressVideosPage === p
                               ? "bg-neutral-900 text-white"
-                              : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-100"
+                              : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                           }`}
                         >
                           {p}
@@ -1646,7 +1484,7 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                     <button
                       onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPage + 1)}
                       disabled={!actressVideosPagination.hasNext || actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
-                      className="px-2 py-1 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
+                      className="px-2.5 py-1 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs font-medium flex items-center gap-1"
                     >
                       <span>Next</span>
                       <ChevronRight className="w-3 h-3" />
@@ -1654,7 +1492,7 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                     <button
                       onClick={() => viewActressVideos(selectedActress, selectedActressName || undefined, actressVideosPagination.totalPages)}
                       disabled={actressVideosPage >= actressVideosPagination.totalPages || actressVideosLoading}
-                      className="p-1.5 rounded border border-neutral-200 bg-white hover:bg-neutral-100 disabled:opacity-40 text-xs"
+                      className="p-1.5 rounded-lg border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-40 text-xs"
                       title="Last Page"
                     >
                       <ChevronsRight className="w-3.5 h-3.5" />
@@ -1663,62 +1501,119 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                 </div>
               )}
 
+              {/* Actress Movies Grid with Thumbnails and Titles */}
               {actressVideosLoading ? (
-                <div className="py-12 text-center text-xs text-neutral-500 space-y-2">
-                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-neutral-400" />
-                  <div>Loading page {actressVideosPage} of {selectedActressName || selectedActress}...</div>
+                <div className="py-20 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-3">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-neutral-400" />
+                  <div>Loading movies for {selectedActressName || selectedActress} (Page {actressVideosPage})...</div>
+                </div>
+              ) : actressVideos.length === 0 ? (
+                <div className="py-16 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-2">
+                  <Film className="w-8 h-8 mx-auto text-neutral-300" />
+                  <div className="font-semibold text-neutral-700">No movies found for this actress</div>
+                  <div className="text-neutral-400">The source page returned 0 items.</div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {actressVideos.map((v, i) => (
-                    <div key={i} className="p-3 border border-neutral-200 rounded-xl bg-white shadow-2xs space-y-2 flex flex-col justify-between hover:border-neutral-300 transition-colors">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-neutral-900 bg-neutral-100 px-1.5 py-0.5 rounded border border-neutral-200">
+                    <div
+                      key={i}
+                      className="bg-white border border-neutral-200 hover:border-neutral-400 rounded-xl overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                    >
+                      {/* Movie Thumbnail */}
+                      <div className="relative aspect-video w-full bg-neutral-100 overflow-hidden border-b border-neutral-100 flex items-center justify-center">
+                        {v.coverImage ? (
+                          <img
+                            src={v.coverImage}
+                            alt={v.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-neutral-300 gap-1">
+                            <Film className="w-8 h-8" />
+                            <span className="text-[10px] uppercase font-mono">No Thumbnail</span>
+                          </div>
+                        )}
+
+                        {/* Top Code Badge */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1">
+                          <span className="font-mono text-[11px] font-bold bg-neutral-900/85 text-white px-2 py-0.5 rounded backdrop-blur-xs shadow-xs">
                             {v.code || "NO CODE"}
                           </span>
-                          {v.duration && (
-                            <span className="text-[10px] text-neutral-500 font-mono flex items-center gap-0.5">
+                        </div>
+
+                        {/* Top Right Duplicate Status */}
+                        {v.isDuplicate && (
+                          <div className="absolute top-2 right-2">
+                            <span className="text-[10px] font-semibold text-amber-900 bg-amber-300/90 px-2 py-0.5 rounded backdrop-blur-xs shadow-xs">
+                              In Registry
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Duration Overlay Badge */}
+                        {v.duration && (
+                          <div className="absolute bottom-2 right-2">
+                            <span className="text-[10px] font-mono font-medium text-white bg-black/75 px-1.5 py-0.5 rounded flex items-center gap-1 backdrop-blur-xs">
                               <Clock className="w-2.5 h-2.5" />
                               {v.duration}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-neutral-800 font-medium line-clamp-2" title={v.title}>
-                          {v.title}
-                        </div>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-2">
-                        <button
-                          onClick={() => inspectPostDetails(v)}
-                          className="text-[11px] text-neutral-600 hover:text-neutral-900 font-medium underline"
-                        >
-                          Inspect
-                        </button>
-                        {v.code && !v.isDuplicate && (
-                          <button
-                            onClick={() => registerItemInRegistry(v)}
-                            disabled={registeringCode === v.code}
-                            className="px-2 py-1 rounded bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] font-medium"
+                      {/* Movie Metadata & Title */}
+                      <div className="p-3.5 space-y-2.5 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <h4
+                            className="text-xs font-semibold text-neutral-900 line-clamp-2 group-hover:text-neutral-950 leading-relaxed"
+                            title={v.title}
                           >
-                            + Register
+                            {v.title}
+                          </h4>
+                          {v.releaseDate && (
+                            <div className="text-[11px] text-neutral-400 font-mono">
+                              {v.releaseDate}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="pt-2.5 border-t border-neutral-100 flex items-center justify-between gap-2">
+                          <button
+                            onClick={() => inspectPostDetails(v)}
+                            className="text-xs font-medium text-neutral-700 hover:text-neutral-900 underline flex items-center gap-1"
+                          >
+                            <span>Inspect</span>
                           </button>
-                        )}
-                        {v.isDuplicate && (
-                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                            In Registry
-                          </span>
-                        )}
+
+                          <div className="flex items-center gap-1.5">
+                            {v.code && (
+                              <button
+                                onClick={() => ingestVideo(v)}
+                                disabled={ingestingCode === v.code}
+                                className="px-2.5 py-1 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-medium flex items-center gap-1 shadow-2xs transition-colors"
+                              >
+                                {ingestingCode === v.code ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <span>+ Ingest</span>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Actress Videos Pagination Bar (Bottom) */}
+              {/* Bottom Movies Pagination Bar */}
               {actressVideosPagination && actressVideosPagination.totalPages > 1 && (
-                <div className="pt-2 border-t border-neutral-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                   <div className="text-neutral-500">
                     Page <strong className="text-neutral-900 font-semibold">{actressVideosPage}</strong> of <strong className="text-neutral-900 font-semibold">{actressVideosPagination.totalPages}</strong>
                   </div>
@@ -1739,7 +1634,7 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                       <ChevronLeft className="w-3.5 h-3.5" />
                       <span>Prev</span>
                     </button>
-                    <span className="px-2.5 py-1 text-xs font-bold bg-neutral-900 text-white rounded-lg">
+                    <span className="px-3 py-1.5 text-xs font-bold bg-neutral-900 text-white rounded-lg">
                       Page {actressVideosPage} / {actressVideosPagination.totalPages}
                     </span>
                     <button
@@ -1762,6 +1657,216 @@ export const BulkScraperView: React.FC<BulkScraperViewProps> = ({ onNavigate }) 
                 </div>
               )}
             </div>
+          ) : (
+            /* ACTRESSES DIRECTORY GRID VIEW */
+            <>
+              <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">
+                      Javtiful Actresses Directory (/actresses)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-700">
+                      Page {actressesPage} {actressesPagination ? `of ${actressesPagination.totalPages}` : ""}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span>Browse actresses directory from source:</span>
+                    <a
+                      href={actressesPage > 1 ? `https://javtiful.com/actresses?page=${actressesPage}` : `https://javtiful.com/actresses`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-[11px] text-neutral-700 hover:text-neutral-900 underline inline-flex items-center gap-1 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200"
+                    >
+                      <span>javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    id="btn-reload-actresses"
+                    onClick={() => loadActresses(actressesPage, true)}
+                    disabled={actressesLoading}
+                    className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 text-xs flex items-center gap-1.5 transition-colors"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${actressesLoading ? "animate-spin" : ""}`} />
+                    <span>Reload Page</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Top Pagination Control */}
+              {actressesPagination && (
+                <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-xs">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-xs text-neutral-500">
+                      Showing actresses on <strong className="text-neutral-900">Page {actressesPage}</strong> of <strong className="text-neutral-900">{actressesPagination.totalPages}</strong>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => loadActresses(1, true)}
+                        disabled={actressesPage <= 1 || actressesLoading}
+                        className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                        title="First Page"
+                      >
+                        <ChevronsLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => loadActresses(actressesPage - 1, true)}
+                        disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
+                        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Prev</span>
+                      </button>
+                      <span className="px-2 py-1 text-xs font-semibold bg-neutral-900 text-white rounded-lg min-w-[32px] text-center">
+                        {actressesPage}
+                      </span>
+                      <button
+                        onClick={() => loadActresses(actressesPage + 1, true)}
+                        disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
+                        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => loadActresses(actressesPagination.totalPages, true)}
+                        disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
+                        className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                        title="Last Page"
+                      >
+                        <ChevronsRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {actressesLoading ? (
+                <div className="py-16 text-center text-xs text-neutral-500 bg-white border border-neutral-200 rounded-xl space-y-3">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-neutral-400" />
+                  <div>Fetching actresses from https://javtiful.com/actresses{actressesPage > 1 ? `?page=${actressesPage}` : ""}...</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {actresses.map((a) => (
+                    <div
+                      key={a.slug}
+                      onClick={() => {
+                        setSelectedActressThumbnail(a.thumbnail || null);
+                        setSelectedActressVideoCount(a.videoCount);
+                        viewActressVideos(a.slug, a.name, 1);
+                      }}
+                      className="bg-white border border-neutral-200 rounded-xl p-3 shadow-xs cursor-pointer hover:border-neutral-400 hover:shadow-sm transition-all flex flex-col items-center text-center space-y-2 group"
+                    >
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-neutral-100 flex items-center justify-center border border-neutral-200 group-hover:scale-105 transition-transform">
+                        {a.thumbnail ? (
+                          <img
+                            src={a.thumbnail}
+                            alt={a.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-8 h-8 text-neutral-400" />
+                        )}
+                      </div>
+                      <div className="w-full">
+                        <div className="text-xs font-semibold text-neutral-900 line-clamp-1 group-hover:text-neutral-950">{a.name}</div>
+                        {a.videoCount !== undefined ? (
+                          <div className="text-[11px] text-neutral-500 mt-0.5">{a.videoCount} videos</div>
+                        ) : (
+                          <div className="text-[11px] text-neutral-400 mt-0.5 font-mono truncate">{a.slug}</div>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-neutral-400 group-hover:text-neutral-700 font-medium flex items-center gap-0.5 pt-1">
+                        <span>View movies</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bottom Actresses Pagination Bar with Full Page Numbers & Jump */}
+              {actressesPagination && actressesPagination.totalPages > 1 && (
+                <div className="bg-white border border-neutral-200 rounded-xl p-4 shadow-xs">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="text-xs text-neutral-500">
+                      Page <strong className="text-neutral-900 font-semibold">{actressesPage}</strong> of <strong className="text-neutral-900 font-semibold">{actressesPagination.totalPages}</strong>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                      <button
+                        onClick={() => loadActresses(1, true)}
+                        disabled={actressesPage <= 1 || actressesLoading}
+                        className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                        title="First Page"
+                      >
+                        <ChevronsLeft className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => loadActresses(actressesPage - 1, true)}
+                        disabled={!actressesPagination.hasPrev || actressesPage <= 1 || actressesLoading}
+                        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Prev</span>
+                      </button>
+
+                      {/* Number pills matching source pagination */}
+                      {Array.from(new Set([
+                        1,
+                        ...(actressesPage > 3 ? ["..."] : []),
+                        ...[actressesPage - 1, actressesPage, actressesPage + 1].filter(p => p >= 1 && p <= actressesPagination.totalPages),
+                        ...(actressesPage < actressesPagination.totalPages - 2 ? ["..."] : []),
+                        actressesPagination.totalPages,
+                      ])).map((p, idx) =>
+                        typeof p === "string" ? (
+                          <span key={`actress-ellipsis-${idx}`} className="px-1 text-xs text-neutral-400">
+                            ...
+                          </span>
+                        ) : (
+                          <button
+                            key={`actress-page-${p}`}
+                            onClick={() => loadActresses(p as number, true)}
+                            disabled={actressesLoading}
+                            className={`min-w-[32px] h-8 rounded-lg text-xs font-semibold transition-all ${
+                              actressesPage === p
+                                ? "bg-neutral-900 text-white shadow-xs"
+                                : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+
+                      <button
+                        onClick={() => loadActresses(actressesPage + 1, true)}
+                        disabled={!actressesPagination.hasNext || actressesPage >= actressesPagination.totalPages || actressesLoading}
+                        className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs flex items-center gap-1 font-medium"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => loadActresses(actressesPagination.totalPages, true)}
+                        disabled={actressesPage >= actressesPagination.totalPages || actressesLoading}
+                        className="p-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:pointer-events-none text-xs"
+                        title="Last Page"
+                      >
+                        <ChevronsRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -160,52 +160,9 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Top Header Card */}
-      <div className="bg-white border border-neutral-200 rounded-xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-neutral-900 text-white tracking-wide">
-                Unified Catalog
-              </span>
-              <h1 className="text-lg font-bold text-neutral-900 flex items-center gap-2">
-                <Icon className="w-5 h-5 text-neutral-700" />
-                {config.title}
-              </h1>
-            </div>
-            <p className="text-xs text-neutral-500 mt-1">
-              Alphabetically sharded profiles persisted at{" "}
-              <code className="font-mono bg-neutral-100 px-1.5 py-0.5 rounded text-neutral-800">
-                {config.storagePath}
-              </code>{" "}
-              with automatic master index synchronization.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              id={`${entityType}-refresh-btn`}
-              onClick={() => fetchEntities(page, selectedLetter, searchQuery)}
-              disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-300 hover:bg-neutral-50 text-xs font-medium text-neutral-700 transition-colors shadow-2xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
-            </button>
-            {onNavigate && (
-              <button
-                onClick={() => onNavigate("bulk-scraper")}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-medium transition-colors shadow-xs"
-              >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Ingest via Scraper</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Search Bar & Stats */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-neutral-100">
+      {/* Top Search & Actions Control Bar */}
+      <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
             <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-neutral-400" />
             <input
@@ -214,7 +171,7 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search ${config.pluralTitle.toLowerCase()} by name or slug...`}
-              className="w-full pl-9 pr-20 py-2 rounded-lg border border-neutral-300 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900 bg-white"
+              className="w-full pl-9 pr-20 py-2 rounded-xl border border-neutral-300 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900 bg-white"
             />
             {searchQuery && (
               <button
@@ -231,17 +188,38 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
             <button
               id={`${entityType}-search-submit-btn`}
               type="submit"
-              className="absolute right-1.5 top-1.5 px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs rounded font-medium transition-colors"
+              className="absolute right-1.5 top-1.5 px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs rounded-lg font-medium transition-colors"
             >
               Filter
             </button>
           </form>
 
-          <div className="flex items-center gap-2 text-xs text-neutral-500 whitespace-nowrap self-start sm:self-auto">
-            <FolderTree className="w-3.5 h-3.5 text-neutral-400" />
-            <span className="font-mono text-[11px]">
-              Total: {totalCount} {totalCount === 1 ? config.singularTitle : config.pluralTitle}
-            </span>
+          <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
+            <div className="flex items-center gap-1.5 text-xs text-neutral-600 bg-neutral-100 px-3 py-2 rounded-xl font-mono">
+              <FolderTree className="w-3.5 h-3.5 text-neutral-500" />
+              <span>
+                Total: {totalCount} {totalCount === 1 ? config.singularTitle : config.pluralTitle}
+              </span>
+            </div>
+
+            <button
+              id={`${entityType}-refresh-btn`}
+              onClick={() => fetchEntities(page, selectedLetter, searchQuery)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-300 hover:bg-neutral-50 text-xs font-medium text-neutral-700 transition-colors shadow-2xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            {onNavigate && (
+              <button
+                onClick={() => onNavigate("bulk-scraper")}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 text-xs font-medium transition-colors shadow-xs"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Ingest</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -305,16 +283,26 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {/* 2 columns on mobile, 3 columns on other displays */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5 lg:gap-6">
             {entities.map((item) => (
               <div
                 key={item.slug}
                 id={`${entityType}-card-${item.slug}`}
                 onClick={() => handleOpenDetail(item)}
-                className="bg-white border border-neutral-200 hover:border-neutral-400 rounded-xl p-4 shadow-xs hover:shadow-sm transition-all cursor-pointer space-y-3 group flex flex-col justify-between"
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleOpenDetail(item);
+                  }
+                }}
+                className="bg-white border border-neutral-200/90 hover:border-neutral-400 rounded-2xl p-4 sm:p-6 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col items-center text-center justify-between active:scale-[0.98] select-none"
               >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-neutral-100 border border-neutral-200 shrink-0 overflow-hidden flex items-center justify-center">
+                <div className="flex flex-col items-center w-full">
+                  {/* Extra Large Profile Photo */}
+                  <div className={`w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-48 lg:h-48 aspect-square ${isActress ? "rounded-full" : "rounded-2xl"} bg-neutral-100 border-2 border-neutral-200/90 group-hover:border-neutral-400 group-hover:scale-[1.03] transition-all overflow-hidden flex items-center justify-center shrink-0 shadow-xs`}>
                     {item.thumbnail ? (
                       <img
                         src={item.thumbnail}
@@ -323,28 +311,24 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Icon className="w-5 h-5 text-neutral-400" />
+                      <Icon className="w-12 h-12 sm:w-16 sm:h-16 text-neutral-400" />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-neutral-900 truncate group-hover:text-neutral-700">
-                      {item.name}
-                    </h3>
-                    <p className="text-[11px] font-mono text-neutral-500 truncate">{item.slug}</p>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-700 text-[10px] font-mono font-medium">
-                        <Film className="w-2.5 h-2.5 text-neutral-500" />
+
+                  {/* Full Name (No truncation, wrapped within box) */}
+                  <h3 className="mt-3.5 sm:mt-4 text-xs sm:text-sm md:text-base font-bold text-neutral-900 group-hover:text-neutral-950 w-full px-1 text-center leading-snug break-words">
+                    {item.name}
+                  </h3>
+
+                  {/* Total Video Number */}
+                  <div className="mt-2 flex items-center justify-center">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 group-hover:bg-neutral-900 group-hover:text-white text-neutral-700 text-[11px] sm:text-xs font-mono font-medium transition-colors">
+                      <Film className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
+                      <span>
                         {item.videoCount} {item.videoCount === 1 ? "video" : "videos"}
                       </span>
-                    </div>
+                    </span>
                   </div>
-                </div>
-
-                <div className="pt-2 border-t border-neutral-100 flex items-center justify-between text-[10px] text-neutral-400 font-mono">
-                  <span className="truncate">{item.path}</span>
-                  <span className="text-neutral-800 font-medium group-hover:underline">
-                    View &rarr;
-                  </span>
                 </div>
               </div>
             ))}
@@ -383,8 +367,8 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
           <div className="bg-white rounded-2xl border border-neutral-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="p-5 border-b border-neutral-200 flex items-center justify-between gap-4 bg-neutral-50 shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-full bg-neutral-200 border border-neutral-300 shrink-0 overflow-hidden flex items-center justify-center">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 ${isActress ? "rounded-full" : "rounded-2xl"} bg-neutral-200 border-2 border-neutral-300 shrink-0 overflow-hidden flex items-center justify-center shadow-xs`}>
                   {selectedItem.thumbnail ? (
                     <img
                       src={selectedItem.thumbnail}
@@ -393,12 +377,12 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Icon className="w-5 h-5 text-neutral-500" />
+                    <Icon className="w-7 h-7 text-neutral-500" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-semibold text-neutral-900 truncate">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-bold text-neutral-900 truncate">
                       {selectedItem.name}
                     </h2>
                     <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-neutral-200 text-neutral-700">
@@ -406,7 +390,7 @@ export const EntityCatalogView: React.FC<EntityCatalogViewProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-neutral-500 font-mono mt-0.5 truncate">
-                    Slug: {selectedItem.slug} • Letter: {selectedItem.letter.toUpperCase()}
+                    Slug: {selectedItem.slug} • {selectedItem.videoCount} total {selectedItem.videoCount === 1 ? "video" : "videos"}
                   </p>
                 </div>
               </div>

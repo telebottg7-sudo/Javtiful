@@ -4,7 +4,6 @@ import {
   NavView,
   SelfTestReport,
   DatabaseStatusReport,
-  IndexFileStatus,
   StoragePerformanceMetrics,
   Step10PerformanceReport,
 } from "../../types";
@@ -15,27 +14,16 @@ import {
   Building2,
   Hash,
   Film,
-  FolderTree,
   ArrowRight,
   HardDrive,
   CheckCircle2,
   XCircle,
   Loader2,
   Play,
-  Activity,
-  Database,
-  FileCode,
   RefreshCw,
   Zap,
   Trash2,
-  Clock,
-  ShieldCheck,
   Wrench,
-  Copy,
-  Check,
-  Sparkles,
-  ExternalLink,
-  Flame,
 } from "lucide-react";
 import { DatabaseTopologyGraphic } from "../home/DatabaseTopologyGraphic";
 import { DatabaseHealthGauges } from "../home/DatabaseHealthGauges";
@@ -52,9 +40,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ status, onNavigate }) => {
   // Schema status & interactive samples
   const [schemaReport, setSchemaReport] = useState<DatabaseStatusReport | null>(null);
   const [loadingSchema, setLoadingSchema] = useState(false);
-  const [selectedSample, setSelectedSample] = useState<string>("codesIndex");
-  const [copiedSample, setCopiedSample] = useState(false);
-
   // Step 10: Performance, Caching & Concurrency telemetry
   const [perfMetrics, setPerfMetrics] = useState<StoragePerformanceMetrics | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
@@ -142,14 +127,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ status, onNavigate }) => {
     }
   };
 
-  const handleCopySample = () => {
-    if (!schemaReport?.samples) return;
-    const sampleData = (schemaReport.samples as Record<string, unknown>)[selectedSample];
-    navigator.clipboard.writeText(JSON.stringify(sampleData, null, 2));
-    setCopiedSample(true);
-    setTimeout(() => setCopiedSample(false), 2000);
-  };
-
   const directoryLayout = [
     {
       path: "database/index/codes.json",
@@ -195,15 +172,6 @@ export const HomeView: React.FC<HomeViewProps> = ({ status, onNavigate }) => {
     { id: "actress", label: "Actress Catalog", icon: Users, desc: "Explore sharded actress profiles in database/pstar/", badge: `${schemaReport?.files?.actresses?.totalCount ?? 34} Profiles` },
     { id: "studio", label: "Studio Catalog", icon: Building2, desc: "Explore studio directory and production releases in database/studio/", badge: `${schemaReport?.files?.studios?.totalCount ?? 22} Studios` },
     { id: "maintenance", label: "Maintenance Tools", icon: Wrench, desc: "Deep validation, duplicate/orphan detection, index repairs & rebuilds", badge: "Health Audit" },
-  ];
-
-  const sampleTabs: Array<{ id: string; label: string; path: string }> = [
-    { id: "codesIndex", label: "codes.json", path: "database/index/codes.json" },
-    { id: "videosIndex", label: "videos.json", path: "database/index/videos.json" },
-    { id: "actressesIndex", label: "actresses.json", path: "database/index/actresses.json" },
-    { id: "studiosIndex", label: "studios.json", path: "database/index/studios.json" },
-    { id: "actressEntity", label: "actress.json (pstar/)", path: "database/pstar/{letter}/{slug}.json" },
-    { id: "studioEntity", label: "studio.json (studio/)", path: "database/studio/{letter}/{slug}.json" },
   ];
 
   const totalIndexed =
@@ -333,158 +301,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ status, onNavigate }) => {
         />
       </div>
 
-      {/* 4. MASTER INDEXES REAL-TIME STATUS CARDS */}
-      <div className="bg-white border border-neutral-200/90 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-neutral-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
-              <Database className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900">
-                Core Master Index Registry Files
-              </h3>
-              <p className="text-xs text-neutral-500">
-                Single-source index files in <code className="font-mono text-neutral-700">{status?.repo?.root || "database"}/index/*.json</code>
-              </p>
-            </div>
-          </div>
-
-          <span className="text-xs font-mono text-neutral-500">
-            SHA-1 verified on each commit
-          </span>
-        </div>
-
-        {schemaReport && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
-            {(Object.entries(schemaReport.files) as [string, IndexFileStatus][]).map(([key, file]) => {
-              const routeMapping: Record<string, NavView> = {
-                codes: "code",
-                videos: "videos",
-                actresses: "actress",
-                studios: "studio",
-              };
-              const targetRoute = routeMapping[key] || "home";
-
-              return (
-                <div
-                  key={key}
-                  className="p-4 rounded-xl border border-neutral-200/90 bg-neutral-50/50 hover:bg-white hover:border-neutral-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-3 group"
-                >
-                  <div>
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                      <span className="font-mono font-bold text-sm text-neutral-900 group-hover:text-emerald-700 transition-colors">
-                        {key}.json
-                      </span>
-                      {file.exists && file.valid ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          Valid
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">
-                          Missing
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] font-mono text-neutral-400 truncate">
-                      {file.path}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-200/70">
-                      <span className="text-neutral-500 font-medium">Record Count</span>
-                      <span className="font-mono font-bold text-neutral-900 text-sm">{file.totalCount}</span>
-                    </div>
-
-                    {file.sha && (
-                      <div className="text-[10px] font-mono text-neutral-400 truncate bg-neutral-100/80 px-2 py-1 rounded">
-                        SHA: {file.sha.substring(0, 12)}...
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => onNavigate(targetRoute)}
-                      className="w-full pt-1 text-[11px] font-semibold text-neutral-700 hover:text-neutral-950 flex items-center justify-between transition-colors"
-                    >
-                      <span>Explore Catalog</span>
-                      <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 5. CANONICAL SCHEMA SPECIFICATIONS & SYNTAX VIEWER */}
-      <div className="bg-white border border-neutral-200/90 rounded-2xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <FileCode className="w-4 h-4 text-neutral-800 shrink-0" />
-            <div>
-              <h3 className="text-sm font-bold text-neutral-900">Canonical JSON Schema Specifications</h3>
-              <p className="text-xs text-neutral-500">Live schema templates for storage indexing and sharded entity files</p>
-            </div>
-          </div>
-
-          <button
-            onClick={handleCopySample}
-            disabled={!schemaReport?.samples}
-            className="px-3 py-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-medium transition-colors flex items-center gap-1.5 self-start sm:self-auto"
-          >
-            {copiedSample ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-700 font-semibold">Copied JSON!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-neutral-500" />
-                <span>Copy Specification</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Tab Switcher */}
-        <div className="flex gap-1.5 border border-neutral-200 p-1.5 rounded-xl bg-neutral-50 text-xs overflow-x-auto">
-          {sampleTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setSelectedSample(tab.id)}
-              className={`px-3 py-1.5 rounded-lg font-mono text-xs font-semibold transition-all shrink-0 ${
-                selectedSample === tab.id
-                  ? "bg-white text-neutral-900 shadow-xs border border-neutral-200/80"
-                  : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100/60"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Sample Payload Display */}
-        {schemaReport?.samples && (
-          <div className="rounded-xl border border-neutral-800 bg-neutral-950 p-4 text-neutral-100 overflow-x-auto font-mono text-xs max-h-80 shadow-inner">
-            <div className="text-[11px] text-neutral-400 mb-2 pb-2 border-b border-neutral-800 flex items-center justify-between">
-              <span>// Schema Path: {sampleTabs.find((t) => t.id === selectedSample)?.path}</span>
-              <span className="text-emerald-400 text-[10px]">Strict TypeScript Schema</span>
-            </div>
-            <pre className="text-emerald-400 leading-relaxed font-mono">
-              {JSON.stringify(
-                (schemaReport.samples as Record<string, unknown>)[selectedSample],
-                null,
-                2
-              )}
-            </pre>
-          </div>
-        )}
-      </div>
-
-      {/* 6. STORAGE VERIFICATION & CONCURRENCY BENCHMARK SUITES */}
+      {/* 4. STORAGE VERIFICATION & CONCURRENCY BENCHMARK SUITES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Verification Suite */}
         <div className="bg-white border border-neutral-200/90 rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
