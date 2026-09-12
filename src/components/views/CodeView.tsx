@@ -12,7 +12,8 @@ import {
   Calendar,
   Download,
   Sparkles,
-  Link2
+  Link2,
+  Globe
 } from "lucide-react";
 import { CodeSummary, NavView } from "../../types";
 import { MediaHarvesterModal } from "../modals/MediaHarvesterModal";
@@ -139,21 +140,33 @@ export const CodeView: React.FC<CodeViewProps> = ({ onNavigate }) => {
             </span>
           </div>
 
-          <form onSubmit={handleCheckCode} className="flex gap-2">
+          <form onSubmit={handleCheckCode} className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={checkInput}
               onChange={(e) => setCheckInput(e.target.value)}
-              placeholder="Enter code to verify (e.g., SSIS-001, moil_008)..."
+              placeholder="Enter code to verify or search live (e.g., SSIS-001, moil_008)..."
               className="flex-1 px-3 py-2 text-xs rounded-lg border border-neutral-300 bg-white font-mono focus:outline-none focus:ring-2 focus:ring-neutral-900"
             />
-            <button
-              type="submit"
-              disabled={checkLoading || !checkInput.trim()}
-              className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors shadow-2xs"
-            >
-              {checkLoading ? "Checking..." : "Verify Code"}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={checkLoading || !checkInput.trim()}
+                className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors shadow-2xs shrink-0 cursor-pointer"
+              >
+                {checkLoading ? "Checking..." : "Verify Code"}
+              </button>
+              <button
+                type="button"
+                disabled={!checkInput.trim()}
+                onClick={() => setHarvesterTarget(checkInput.trim())}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs shrink-0 cursor-pointer"
+                title="Search live source website directly for this code"
+              >
+                <Globe className="w-3.5 h-3.5 text-white" />
+                <span>Search Source Website</span>
+              </button>
+            </div>
           </form>
 
           {/* Checker Result Display */}
@@ -204,15 +217,27 @@ export const CodeView: React.FC<CodeViewProps> = ({ onNavigate }) => {
       {/* Database Search & List */}
       <div className="bg-white border border-neutral-200 rounded-xl shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <form onSubmit={handleSearchSubmit} className="relative max-w-md w-full">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search registry by code or title..."
-              className="w-full pl-9 pr-4 py-2 text-xs border border-neutral-300 rounded-lg focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
-            />
+          <form onSubmit={handleSearchSubmit} className="flex gap-2 max-w-lg w-full">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search registry by code or title..."
+                className="w-full pl-9 pr-4 py-2 text-xs border border-neutral-300 rounded-lg focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
+              />
+            </div>
+            <button
+              type="button"
+              disabled={!searchQuery.trim()}
+              onClick={() => setHarvesterTarget(searchQuery.trim())}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+              title="Search live source website"
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span>Search Source</span>
+            </button>
           </form>
           <div className="text-xs text-neutral-500 font-mono shrink-0">
             Showing {codes.length} of {totalFound} results
